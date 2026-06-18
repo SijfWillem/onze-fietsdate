@@ -42,6 +42,119 @@
     body { overscroll-behavior: none; }
 
     /* ============================================================
+       PART 0 — HINGE SPLASH + SWIPEABLE PROFILE
+       ============================================================ */
+    #splash {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      transition: opacity .7s ease;
+    }
+    #splash.hide { opacity: 0; pointer-events: none; }
+    .splash-logo {
+      width: min(58vw, 290px);
+      height: auto;
+      animation: logoIn 1s cubic-bezier(.2,.8,.2,1) both;
+    }
+    .splash-tag {
+      margin-top: 6px;
+      color: #7a7a7a;
+      font-size: .95rem;
+      font-weight: 500;
+      opacity: 0;
+      animation: fadeIn .8s ease .5s both;
+    }
+    @keyframes logoIn { from { opacity: 0; transform: scale(.86); } to { opacity: 1; transform: scale(1); } }
+    @keyframes fadeIn { to { opacity: 1; } }
+
+    #profile {
+      position: fixed;
+      inset: 0;
+      z-index: 25;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 18px;
+      background: radial-gradient(120% 90% at 50% 0%, var(--bg) 0%, var(--bg-2) 100%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .6s ease;
+    }
+    #profile.show { opacity: 1; pointer-events: auto; }
+    #profile.hide { opacity: 0; pointer-events: none; }
+
+    .ph-hint { font-size: .9rem; font-weight: 600; color: var(--muted); text-align: center; min-height: 1.2em; }
+
+    .ph-deck { position: relative; width: 100%; max-width: 380px; }
+
+    .ph-card {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      border-radius: 26px;
+      overflow: hidden;
+      background: #111;
+      box-shadow: 0 24px 60px var(--shadow);
+      touch-action: pan-y;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      will-change: transform;
+    }
+    .ph-card:active { cursor: grabbing; }
+    .ph-photo {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: center 35%;
+      image-orientation: from-image;
+      pointer-events: none;
+    }
+
+    .ph-segs { position: absolute; top: 10px; left: 10px; right: 10px; z-index: 3; display: flex; gap: 5px; pointer-events: none; }
+    .ph-segs > div { flex: 1; height: 3.5px; border-radius: 99px; background: rgba(255,255,255,.35); }
+    .ph-segs > div.on { background: #fff; }
+
+    .ph-info {
+      position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+      padding: 56px 22px 20px;
+      color: #fff; text-align: left;
+      background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.78));
+      pointer-events: none;
+    }
+    .ph-name { font-size: 1.85rem; font-weight: 800; letter-spacing: -.02em; }
+    .ph-bio  { font-size: 1rem; font-weight: 500; opacity: .95; margin-top: 4px; line-height: 1.35; }
+
+    .ph-stamp {
+      position: absolute; top: 24px; z-index: 4;
+      font-weight: 900; font-size: 1.6rem; letter-spacing: .08em;
+      padding: 6px 14px; border-radius: 10px; border: 3px solid;
+      opacity: 0; pointer-events: none;
+    }
+    .ph-stamp.like { left: 20px; color: #2ec27e; border-color: #2ec27e; transform: rotate(-14deg); }
+    .ph-stamp.nope { right: 20px; color: #ff5d6c; border-color: #ff5d6c; transform: rotate(14deg); }
+
+    .ph-actions { display: flex; gap: 26px; }
+    .ph-btn {
+      width: 64px; height: 64px; border-radius: 50%;
+      border: none; cursor: pointer; font-family: inherit;
+      font-size: 1.7rem; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      background: #fff; box-shadow: 0 10px 24px var(--shadow);
+      transition: transform .15s ease;
+    }
+    .ph-btn:active { transform: scale(.9); }
+    .ph-btn.btn-nope { color: #ff5d6c; }
+    .ph-btn.btn-yes  { color: #2ec27e; font-size: 1.9rem; }
+
+    /* ============================================================
        PART 1 — QUESTIONNAIRE (Hinge-style profile card)
        ============================================================ */
     #quiz {
@@ -421,6 +534,33 @@
 </head>
 <body>
 
+  <!-- ===================== PART 0 — SPLASH ===================== -->
+  <section id="splash">
+    <img class="splash-logo" src="hinge_x14z.png" alt="Hinge" />
+    <div class="splash-tag">Designed to be deleted.</div>
+  </section>
+
+  <!-- ===================== PART 0 — PROFILE ===================== -->
+  <section id="profile" aria-hidden="true">
+    <div class="ph-hint" id="ph-hint">Swipe naar rechts om te liken 💚</div>
+    <div class="ph-deck">
+      <div class="ph-card" id="ph-card">
+        <div class="ph-segs" id="ph-segs"></div>
+        <div class="ph-stamp like" id="ph-stamp-like">LIKE</div>
+        <div class="ph-stamp nope" id="ph-stamp-nope">NEE?</div>
+        <img class="ph-photo" id="ph-photo" alt="Sijf" />
+        <div class="ph-info">
+          <div class="ph-name" id="ph-name">Sijf</div>
+          <div class="ph-bio" id="ph-bio"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ph-actions">
+      <button class="ph-btn btn-nope" id="ph-nope" type="button" aria-label="Nope">✕</button>
+      <button class="ph-btn btn-yes"  id="ph-yes"  type="button" aria-label="Like">♥</button>
+    </div>
+  </section>
+
   <!-- ===================== PART 1 ===================== -->
   <section id="quiz">
     <div id="hearts"></div>
@@ -482,6 +622,20 @@
     { text: "Ga je met me mee op fietsdate door onze herinneringen?",     nee: "erratic"  },
   ];
 
+  // Jouw 'Hinge-profiel' — getoond bij het openen. Foto's staan in photos_sijf/.
+  // Swipe naar rechts (of tik op ♥) = like. Tik op de foto om te wisselen.
+  const profilePhotos = [
+    "photos_sijf/IMG_4138.jpeg",
+    "photos_sijf/IMG_2905.jpeg",
+    "photos_sijf/IMG_2385.jpeg",
+    "photos_sijf/IMG_8881.jpeg",
+  ];
+  const profile = {
+    name: "Sijf",
+    age:  "24",                                            // optioneel, bijv. "26" → "Sijf, 26"
+    bio:  "De snor kan ik leveren, minder chaos niet ben ik bang.",
+  };
+
   // Fotogalerij — getoond NA de vragen, VÓÓR de route. Volgorde = klikvolgorde.
   // Verander hier de foto's en bijschriften (bestanden staan in images/).
   const gallery = [
@@ -530,8 +684,8 @@
       note: "Nog geen herinneringen hier… die gaan we vanavond maken.",
       photo: "",
       isRestaurant: true,
-      reservationTime: "TODO: hoe laat is de reservering, bijv. 19:30",
-      pickupTime: "TODO: hoe laat haal je haar op"
+      reservationTime: "",
+      pickupTime: ""
     }
   ];
 
@@ -812,7 +966,117 @@
     confetti({ particleCount: 140, spread: 90, startVelocity: 45, origin: { y: 0.6 }, colors });
   }
 
-  // Start at first question
+  /* ==========================================================================
+     PART 0 LOGIC — Hinge splash + swipeable profile (swipe right to like)
+     ========================================================================== */
+  const splashEl  = document.getElementById('splash');
+  const profileEl = document.getElementById('profile');
+  const phCard    = document.getElementById('ph-card');
+  const phPhoto   = document.getElementById('ph-photo');
+  const phSegs    = document.getElementById('ph-segs');
+  const phHint    = document.getElementById('ph-hint');
+  const phName    = document.getElementById('ph-name');
+  const phBio     = document.getElementById('ph-bio');
+  const stampLike = document.getElementById('ph-stamp-like');
+  const stampNope = document.getElementById('ph-stamp-nope');
+  const HINT_DEFAULT = "Swipe naar rechts om te liken 💚";
+
+  let phIndex = 0;
+
+  function buildProfile() {
+    profilePhotos.forEach(src => { const im = new Image(); im.src = src; });   // preload
+    profilePhotos.forEach(() => phSegs.appendChild(document.createElement('div')));
+    phName.textContent = profile.name + (profile.age ? `, ${profile.age}` : '');
+    phBio.textContent  = profile.bio;
+    showProfilePhoto(0);
+  }
+  function showProfilePhoto(i) {
+    phIndex = (i + profilePhotos.length) % profilePhotos.length;
+    phPhoto.src = profilePhotos[phIndex];
+    [...phSegs.children].forEach((d, idx) => d.classList.toggle('on', idx === phIndex));
+  }
+
+  // --- drag-to-swipe ---
+  let dragging = false, startX = 0, startY = 0, dx = 0, dy = 0, moved = false;
+  const THRESH = 95;
+
+  phCard.addEventListener('pointerdown', (e) => {
+    dragging = true; moved = false;
+    startX = e.clientX; startY = e.clientY; dx = 0; dy = 0;
+    phCard.style.transition = 'none';
+    try { phCard.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  phCard.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    dx = e.clientX - startX; dy = e.clientY - startY;
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) moved = true;
+    phCard.style.transform = `translate(${dx}px, ${dy * 0.25}px) rotate(${dx * 0.06}deg)`;
+    stampLike.style.opacity = dx > 18 ? Math.min(dx / THRESH, 1) : 0;
+    stampNope.style.opacity = dx < -18 ? Math.min(-dx / THRESH, 1) : 0;
+  });
+  phCard.addEventListener('pointerup', (e) => {
+    if (!dragging) return;
+    dragging = false;
+    phCard.style.transition = 'transform .35s cubic-bezier(.2,.8,.2,1)';
+
+    if (!moved) {                                  // it was a tap → switch photo
+      const r = phCard.getBoundingClientRect();
+      showProfilePhoto((e.clientX - r.left) < r.width * 0.35 ? phIndex - 1 : phIndex + 1);
+      resetCard();
+      return;
+    }
+    if (dx > THRESH) { likeMe(); return; }         // swiped right → like
+    resetCard();                                   // not far enough / leftward → bounce back
+    if (dx < -THRESH * 0.6) nudgeNo();             // tried to swipe away → can't
+  });
+
+  function resetCard() {
+    phCard.style.transform = '';
+    stampLike.style.opacity = 0;
+    stampNope.style.opacity = 0;
+  }
+
+  function nudgeNo() {
+    phHint.textContent = "Nee is geen optie 😉 swipe naar rechts →";
+    phCard.animate(
+      [{ transform: 'translateX(0)' }, { transform: 'translateX(-12px)' }, { transform: 'translateX(0)' }],
+      { duration: 320, easing: 'ease-out' }
+    );
+    setTimeout(() => { phHint.textContent = HINT_DEFAULT; }, 2200);
+  }
+
+  let liked = false;
+  function likeMe() {
+    if (liked) return;
+    liked = true;
+    stampLike.style.opacity = 1;
+    phHint.textContent = "Geliked! 💚";
+    phCard.style.transition = 'transform .5s ease, opacity .5s ease';
+    phCard.style.transform = 'translate(135vw, -50px) rotate(26deg)';
+    phCard.style.opacity = '0';
+    setTimeout(() => {
+      profileEl.classList.add('hide');
+      profileEl.setAttribute('aria-hidden', 'true');
+      setTimeout(() => { profileEl.style.display = 'none'; }, 600);  // reveal the quiz beneath
+    }, 460);
+  }
+
+  document.getElementById('ph-yes').addEventListener('click', likeMe);
+  document.getElementById('ph-nope').addEventListener('click', nudgeNo);
+
+  // run the intro: build profile, hold logo, then fade splash → profile
+  buildProfile();
+  function revealProfile() {
+    splashEl.classList.add('hide');
+    profileEl.classList.add('show');
+    profileEl.setAttribute('aria-hidden', 'false');
+    setTimeout(() => { splashEl.style.display = 'none'; }, 700);
+  }
+  let splashDone = false;
+  const splashTimer = setTimeout(() => { if (!splashDone) { splashDone = true; revealProfile(); } }, 2000);
+  splashEl.addEventListener('click', () => { if (!splashDone) { splashDone = true; clearTimeout(splashTimer); revealProfile(); } });
+
+  // Start at first question (quiz sits beneath the splash/profile until "like")
   renderQuestion();
 
   // Keep Nee inside the viewport on resize/rotate if it's already loose
