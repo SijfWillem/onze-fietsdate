@@ -211,6 +211,106 @@
     }
 
     /* ============================================================
+       PART 1.5 — PHOTO GALLERY (story-style, tap to advance)
+       ============================================================ */
+    #gallery {
+      position: fixed;
+      inset: 0;
+      z-index: 8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: radial-gradient(120% 90% at 50% 0%, var(--bg) 0%, var(--bg-2) 100%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .8s ease, transform .8s ease;
+    }
+    #gallery.show    { opacity: 1; pointer-events: auto; }
+    #gallery.leaving { opacity: 0; transform: scale(1.04); pointer-events: none; }
+
+    .g-hint {
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    /* segmented progress (like IG/Hinge stories) */
+    .g-progress { display: flex; gap: 5px; width: 100%; max-width: 460px; margin-bottom: 12px; }
+    .g-seg { flex: 1; height: 4px; border-radius: 99px; background: var(--line); overflow: hidden; }
+    .g-seg > i { display: block; height: 100%; width: 0; background: var(--plum); transition: width .3s ease; }
+    .g-seg.filled > i { width: 100%; }
+
+    .g-card {
+      width: 100%;
+      max-width: 460px;
+      background: var(--card);
+      border-radius: 28px;
+      padding: 14px;
+      box-shadow: 0 24px 60px var(--shadow);
+    }
+    .g-imgwrap {
+      position: relative;
+      width: 100%;
+      border-radius: 18px;
+      overflow: hidden;
+      background: var(--bg-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    #g-img {
+      width: 100%;
+      max-height: 60vh;
+      object-fit: contain;
+      image-orientation: from-image;
+      display: block;
+      transition: opacity .3s ease;
+    }
+    #g-img.fading { opacity: 0; }
+    .g-caption {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      text-align: center;
+      padding: 14px 8px 4px;
+      min-height: 1.5em;
+    }
+
+    .g-controls { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+    .g-back {
+      background: #fff;
+      border: 1.5px solid var(--line);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 12px 20px;
+      font-weight: 600;
+      font-size: .95rem;
+      font-family: inherit;
+      cursor: pointer;
+      visibility: hidden;
+    }
+    .g-next {
+      background: var(--plum);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 14px 30px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 12px 26px rgba(75,22,76,.32);
+      transition: transform .2s ease;
+    }
+    .g-next:active { transform: scale(.95); }
+
+    /* ============================================================
        PART 2 — MAP
        ============================================================ */
     #map-section {
@@ -340,6 +440,22 @@
     <div id="celebrate"></div>
   </section>
 
+  <!-- ===================== PART 1.5 — GALLERY ===================== -->
+  <section id="gallery" aria-hidden="true">
+    <div class="g-hint">Tik op de foto om door onze dates te klikken 💜</div>
+    <div class="g-progress" id="g-progress"></div>
+    <div class="g-card">
+      <div class="g-imgwrap" id="g-imgwrap">
+        <img id="g-img" alt="" />
+      </div>
+      <div class="g-caption" id="g-caption"></div>
+    </div>
+    <div class="g-controls">
+      <button class="g-back" id="g-back" type="button">← Terug</button>
+      <button class="g-next" id="g-next" type="button">Volgende →</button>
+    </div>
+  </section>
+
   <!-- ===================== PART 2 ===================== -->
   <section id="map-section" aria-hidden="true">
     <div id="map"></div>
@@ -364,6 +480,17 @@
     { text: "Ben je al zenuwachtig?",                                     nee: "teleport" },
     { text: "Wat is dit nou weer?? Weer een website?? Ben je benieuwd?",  nee: "glide"    },
     { text: "Ga je met me mee op fietsdate door onze herinneringen?",     nee: "erratic"  },
+  ];
+
+  // Fotogalerij — getoond NA de vragen, VÓÓR de route. Volgorde = klikvolgorde.
+  // Verander hier de foto's en bijschriften (bestanden staan in images/).
+  const gallery = [
+    { src: "images/date1.jpeg",         caption: "Date één — Café Cook ☕" },
+    { src: "images/date2_sangria.jpeg", caption: "Date twee — veel sangria 🍷" },
+    { src: "images/date2_mac.jpeg",     caption: "…en eindigen bij de Mac 🍟" },
+    { src: "images/date3_dronkon.jpeg", caption: "Date drie 🍺" },
+    { src: "images/date3_l.jpeg",       caption: "Limoncello spritz met Freek 🍋" },
+    { src: "images/date3_fiets.jpeg",   caption: "…en op het fietsje 🚲" },
   ];
 
   // Fietsroute. Volgorde = fietsvolgorde; de laatste stop is het diner.
@@ -590,19 +717,87 @@
 
     fireConfetti();
 
-    // transition into the map
+    // celebrate, then into the photo gallery
+    setTimeout(startGallery, 2400);
+  }
+
+  /* ==========================================================================
+     PART 1.5 LOGIC — photo gallery (tap to advance, ends into the route)
+     ========================================================================== */
+  const gWrap    = document.getElementById('g-imgwrap');
+  const gImg     = document.getElementById('g-img');
+  const gCap     = document.getElementById('g-caption');
+  const gProg    = document.getElementById('g-progress');
+  const gBack    = document.getElementById('g-back');
+  const gNext    = document.getElementById('g-next');
+  let gIndex = 0;
+
+  function startGallery() {
+    // build progress segments + preload images
+    gallery.forEach(() => {
+      const seg = document.createElement('div');
+      seg.className = 'g-seg';
+      seg.innerHTML = '<i></i>';
+      gProg.appendChild(seg);
+    });
+    gallery.forEach(p => { const im = new Image(); im.src = p.src; });
+
+    const gSection = document.getElementById('gallery');
+    gSection.classList.add('show');
+    gSection.setAttribute('aria-hidden', 'false');
+    quiz.classList.add('leaving');
+    setTimeout(() => { quiz.style.display = 'none'; }, 850);
+
+    gIndex = 0;
+    showPhoto(0, true);
+  }
+
+  function showPhoto(i, instant) {
+    gIndex = i;
+    const p = gallery[i];
+
+    const apply = () => {
+      gImg.src = p.src;
+      gImg.alt = p.caption || '';
+      gCap.textContent = p.caption || '';
+      gImg.classList.remove('fading');
+    };
+    if (instant) { apply(); } else { gImg.classList.add('fading'); setTimeout(apply, 180); }
+
+    // progress: fill up to and including current
+    [...gProg.children].forEach((seg, idx) => seg.classList.toggle('filled', idx <= i));
+
+    gBack.style.visibility = i === 0 ? 'hidden' : 'visible';
+    gNext.textContent = (i === gallery.length - 1) ? 'Naar onze route 🚲' : 'Volgende →';
+  }
+
+  function nextPhoto() {
+    if (gIndex < gallery.length - 1) {
+      showPhoto(gIndex + 1, false);
+    } else {
+      goToRoute();
+    }
+  }
+  function prevPhoto() {
+    if (gIndex > 0) showPhoto(gIndex - 1, false);
+  }
+
+  gWrap.addEventListener('click', nextPhoto);   // tapping the photo advances
+  gNext.addEventListener('click', nextPhoto);
+  gBack.addEventListener('click', prevPhoto);
+
+  function goToRoute() {
+    initMap();
+    const gSection = document.getElementById('gallery');
+    const mapSection = document.getElementById('map-section');
+    gSection.classList.add('leaving');
+    mapSection.classList.add('show');
+    mapSection.setAttribute('aria-hidden', 'false');
     setTimeout(() => {
-      initMap();
-      quiz.classList.add('leaving');
-      const mapSection = document.getElementById('map-section');
-      mapSection.classList.add('show');
-      mapSection.setAttribute('aria-hidden', 'false');
-      setTimeout(() => {
-        quiz.style.display = 'none';
-        if (window._map) window._map.invalidateSize();
-        startBike();
-      }, 850);
-    }, 2200);
+      gSection.style.display = 'none';
+      if (window._map) window._map.invalidateSize();
+      startBike();
+    }, 850);
   }
 
   function fireConfetti() {
