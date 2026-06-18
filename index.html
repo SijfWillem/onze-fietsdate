@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Onze fietsdate 🚲❤️</title>
+
+  <!-- Leaflet CSS (CDN, HTTPS, no API key) -->
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin="" />
+
+  <!-- Hinge-style: modern geometric sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:        #F3EEF4;   /* soft warm lavender-white */
+      --bg-2:      #EADFEC;
+      --card:      #FFFFFF;
+      --plum:      #4B164C;   /* Hinge eggplant */
+      --plum-2:    #6E2A6F;
+      --rose:      #E15B7E;   /* accent for the "like" */
+      --ink:       #29152B;
+      --muted:     #8C7C8E;
+      --line:      #ECE2ED;
+      --shadow:    rgba(75, 22, 76, 0.14);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      height: 100%;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink);
+      overflow: hidden;
+    }
+
+    body { overscroll-behavior: none; }
+
+    /* ============================================================
+       PART 1 — QUESTIONNAIRE (Hinge-style profile card)
+       ============================================================ */
+    #quiz {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      background: radial-gradient(120% 90% at 50% 0%, var(--bg) 0%, var(--bg-2) 100%);
+      transition: opacity .8s ease, transform .8s ease;
+      z-index: 10;
+      overflow: hidden;
+    }
+    #quiz.leaving { opacity: 0; transform: scale(1.04); pointer-events: none; }
+
+    /* floating hearts layer (subtle) */
+    #hearts {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .heart {
+      position: absolute;
+      bottom: -40px;
+      font-size: 24px;
+      opacity: 0;
+      animation: floatUp linear infinite;
+      will-change: transform, opacity;
+    }
+    @keyframes floatUp {
+      0%   { transform: translateY(0) rotate(0deg) scale(1);   opacity: 0; }
+      10%  { opacity: .55; }
+      90%  { opacity: .55; }
+      100% { transform: translateY(-115vh) rotate(40deg) scale(1.1); opacity: 0; }
+    }
+
+    .quiz-inner {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 460px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* the Hinge "prompt" card */
+    .card {
+      width: 100%;
+      background: var(--card);
+      border-radius: 28px;
+      padding: 38px 30px 34px;
+      box-shadow: 0 24px 60px var(--shadow), 0 2px 8px rgba(75,22,76,.06);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* progress dots */
+    .dots { display: flex; gap: 8px; margin-bottom: 26px; }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--line);
+      transition: background .3s ease, transform .3s ease, width .3s ease;
+    }
+    .dot.active { background: var(--plum); width: 22px; border-radius: 99px; }
+    .dot.done   { background: var(--rose); }
+
+    .prompt-label {
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--rose);
+      margin-bottom: 12px;
+    }
+
+    #question {
+      font-size: clamp(1.55rem, 6.4vw, 2.2rem);
+      font-weight: 800;
+      line-height: 1.22;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      max-width: 100%;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      hyphens: auto;
+      margin-bottom: 32px;
+      transition: opacity .35s ease, transform .35s ease;
+    }
+    #question.swap { opacity: 0; transform: translateY(12px); }
+
+    .btn-row {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    /* Ja — filled plum pill; grows / happier each question */
+    #ja {
+      background: var(--plum);
+      color: #fff;
+      font-size: var(--ja-size, 1.15rem);
+      padding: calc(var(--ja-pad, 15px)) calc(var(--ja-pad, 15px) * 2.4);
+      box-shadow: 0 12px 26px rgba(75,22,76,.32);
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1), font-size .3s ease, padding .3s ease, box-shadow .3s ease, background .3s ease;
+      animation: jaPulse 1.7s ease-in-out infinite;
+    }
+    #ja:active { transform: scale(.94); }
+    @keyframes jaPulse {
+      0%,100% { transform: scale(1); }
+      50%     { transform: scale(1.045); }
+    }
+
+    /* Nee — label never changes; only relocates */
+    #nee {
+      background: #fff;
+      color: var(--muted);
+      border: 1.5px solid var(--line);
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 13px 28px;
+      box-shadow: 0 6px 16px rgba(75,22,76,.08);
+      z-index: 30;
+    }
+
+    /* Final celebration message */
+    #celebrate {
+      position: relative;
+      z-index: 2;
+      display: none;
+      width: 100%;
+      max-width: 460px;
+      background: var(--card);
+      border-radius: 28px;
+      padding: 40px 30px;
+      box-shadow: 0 24px 60px var(--shadow);
+      font-size: clamp(1.3rem, 5.4vw, 1.9rem);
+      font-weight: 800;
+      line-height: 1.35;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      animation: popIn .6s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(.85) translateY(10px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* ============================================================
+       PART 2 — MAP
+       ============================================================ */
+    #map-section {
+      position: fixed;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .9s ease;
+      z-index: 5;
+    }
+    #map-section.show { opacity: 1; pointer-events: auto; }
+
+    #map { position: absolute; inset: 0; background: #aadaff; }
+
+    .map-title {
+      position: absolute;
+      top: calc(14px + env(safe-area-inset-top));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      text-align: center;
+      padding: 11px 22px;
+      border-radius: 999px;
+      font-size: clamp(1rem, 4.4vw, 1.25rem);
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      color: var(--plum);
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 30px rgba(75,22,76,.18);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    /* numbered custom markers */
+    .pin {
+      position: relative;
+      width: 38px;
+      height: 38px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      background: var(--plum);
+      border: 2.5px solid #fff;
+      box-shadow: 0 4px 12px rgba(75,22,76,.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pin span {
+      transform: rotate(45deg);
+      color: #fff;
+      font-weight: 800;
+      font-size: 15px;
+      line-height: 1;
+    }
+    .pin.resto {
+      background: var(--rose);
+      width: 46px;
+      height: 46px;
+      animation: pinPulse 1.8s ease-in-out infinite;
+    }
+    .pin.resto span { font-size: 20px; }
+    @keyframes pinPulse {
+      0%,100% { box-shadow: 0 4px 12px rgba(225,91,126,.5); }
+      50%     { box-shadow: 0 4px 24px rgba(225,91,126,.95); }
+    }
+
+    .bike-marker { font-size: 30px; line-height: 1; filter: drop-shadow(0 2px 3px rgba(0,0,0,.4)); }
+
+    /* popups */
+    .leaflet-popup-content-wrapper {
+      border-radius: 20px;
+      background: var(--card);
+      box-shadow: 0 12px 36px var(--shadow);
+    }
+    .leaflet-popup-tip { background: var(--card); }
+    .leaflet-popup-content {
+      margin: 16px 18px;
+      width: clamp(200px, 72vw, 280px) !important;
+    }
+    .pop-title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pop-note { font-size: .95rem; line-height: 1.5; color: var(--muted); }
+    .pop-img {
+      width: 100%;
+      border-radius: 14px;
+      margin-top: 12px;
+      display: block;
+    }
+    .pop-times {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      font-size: .92rem;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+    .pop-times b { color: var(--plum); }
+  </style>
+</head>
+<body>
+
+  <!-- ===================== PART 1 ===================== -->
+  <section id="quiz">
+    <div id="hearts"></div>
+
+    <div class="quiz-inner">
+      <div class="card">
+        <div class="dots" id="dots"></div>
+        <div class="prompt-label">Vraag voor jou</div>
+        <h1 id="question">&nbsp;</h1>
+        <div class="btn-row">
+          <button id="ja" class="btn" type="button">Ja</button>
+          <button id="nee" class="btn" type="button" tabindex="-1" aria-hidden="true">Nee</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="celebrate"></div>
+  </section>
+
+  <!-- ===================== PART 2 ===================== -->
+  <section id="map-section" aria-hidden="true">
+    <div id="map"></div>
+    <div class="map-title">Onze fietsdate 🚲❤️</div>
+  </section>
+
+
+  <!-- canvas-confetti (CDN, HTTPS) -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- Leaflet JS (CDN, HTTPS, no API key) -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin=""></script>
+
+  <script>
+  /* ==========================================================================
+     EDITABLE DATA — verander hier de vragen en de stops
+     ========================================================================== */
+
+  // Vragen, in volgorde. Alleen "Ja" gaat verder.
+  const questions = [
+    { text: "Ben je al zenuwachtig?",                                     nee: "teleport" },
+    { text: "Wat is dit nou weer?? Weer een website?? Ben je benieuwd?",  nee: "glide"    },
+    { text: "Ga je met me mee op fietsdate door onze herinneringen?",     nee: "erratic"  },
+  ];
+
+  // Fietsroute. Volgorde = fietsvolgorde; de laatste stop is het diner.
+  const stops = [
+    {
+      name: "Café Cook",
+      coords: [52.3712896, 4.8526246],
+      emoji: "☕",
+      note: "Onze eerste date. Waar de wijntjes vielen, er veel gelachen werd en we rondgedraaid zijn op het fietsje.",
+      photo: ""   // optioneel: images/cook.jpg
+    },
+    {
+      name: "Bar Kosta",
+      coords: [52.3579573, 4.8556117],
+      emoji: "🍷",
+      note: "Date twee, snel na date één. Veel sangria, weer veel gelachen, en eindigen bij de Mac… oeps.",
+      photo: ""
+    },
+    {
+      name: "Irish Pub O'Donnell's",
+      coords: [52.3566912, 4.8908977],
+      emoji: "🍺",
+      note: "Date drie. Geen goeie tent — we hadden een ander plan, maar eindigden hier. Limoncello spritz met Freek, adhd-tests, de hele rambam. En weer eindigen bij de Mac.",
+      photo: ""
+    },
+    {
+      name: "Door 74",
+      coords: [52.3659406, 4.8935964],
+      emoji: "🍸",
+      note: "Geheime plek ;)",
+      photo: ""
+    },
+    {
+      name: "Eetcafé Wijmpje Beukers",
+      coords: [52.3515637, 4.8954069],
+      emoji: "🍽️",
+      note: "Nog geen herinneringen hier… die gaan we vanavond maken.",
+      photo: "",
+      isRestaurant: true,
+      reservationTime: "TODO: hoe laat is de reservering, bijv. 19:30",
+      pickupTime: "TODO: hoe laat haal je haar op"
+    }
+  ];
+
+  /* ==========================================================================
+     PART 1 LOGIC
+     ========================================================================== */
+  const quiz      = document.getElementById('quiz');
+  const qEl       = document.getElementById('question');
+  const ja        = document.getElementById('ja');
+  const nee       = document.getElementById('nee');
+  const celebrate = document.getElementById('celebrate');
+  const dotsEl    = document.getElementById('dots');
+
+  let current = 0;
+
+  // --- progress dots (Hinge-style) ---
+  (function buildDots() {
+    questions.forEach(() => {
+      const d = document.createElement('div');
+      d.className = 'dot';
+      dotsEl.appendChild(d);
+    });
+  })();
+
+  function renderDots() {
+    [...dotsEl.children].forEach((d, i) => {
+      d.classList.toggle('done', i < current);
+      d.classList.toggle('active', i === current);
+    });
+  }
+
+  // --- floating hearts (subtle) ---
+  (function spawnHearts() {
+    const layer = document.getElementById('hearts');
+    const symbols = ['💜','🤍','✨','💜','🤍','✨'];
+    const COUNT = 16;
+    for (let i = 0; i < COUNT; i++) {
+      const h = document.createElement('div');
+      h.className = 'heart';
+      h.textContent = symbols[i % symbols.length];
+      h.style.left = (Math.random() * 100) + 'vw';
+      h.style.fontSize = (16 + Math.random() * 26) + 'px';
+      h.style.animationDuration = (7 + Math.random() * 8) + 's';
+      h.style.animationDelay = (-Math.random() * 12) + 's';
+      layer.appendChild(h);
+    }
+  })();
+
+  function renderQuestion() {
+    const q = questions[current];
+
+    // swap-out animation, then update text
+    qEl.classList.add('swap');
+    setTimeout(() => {
+      qEl.textContent = q.text;
+      qEl.classList.remove('swap');
+    }, 200);
+
+    renderDots();
+
+    // Ja grows / gets happier each question
+    const grow = current; // 0,1,2
+    ja.style.setProperty('--ja-size', (1.15 + grow * 0.3) + 'rem');
+    ja.style.setProperty('--ja-pad',  (15 + grow * 5) + 'px');
+
+    resetNee();
+  }
+
+  // Put Nee back in the normal flow (inline), label unchanged.
+  function resetNee() {
+    nee.style.position = 'static';
+    nee.style.transition = 'none';
+    nee.style.left = '';
+    nee.style.top = '';
+    nee.style.margin = '';
+    nee.style.transform = '';
+  }
+
+  // rect overlap test with padding, so Nee never sits on/near Ja
+  function overlapsJa(x, y, w, h) {
+    const r = ja.getBoundingClientRect();
+    const pad = 24;
+    return !(x + w < r.left - pad ||
+             x > r.right + pad ||
+             y + h < r.top - pad ||
+             y > r.bottom + pad);
+  }
+
+  // random in-viewport position that avoids Ja
+  function randomPos(w, h) {
+    const m = 10;
+    const maxX = window.innerWidth  - w - m;
+    const maxY = window.innerHeight - h - m;
+    for (let i = 0; i < 80; i++) {
+      const x = m + Math.random() * (maxX - m);
+      const y = m + Math.random() * (maxY - m);
+      if (!overlapsJa(x, y, w, h)) return { x, y };
+    }
+    return { x: m, y: m }; // fallback (corner, away from centered Ja)
+  }
+
+  // glide: run AWAY from the tap point
+  function awayFrom(px, py, w, h) {
+    const cx = parseFloat(nee.style.left) + w / 2;
+    const cy = parseFloat(nee.style.top)  + h / 2;
+    let dx = cx - px, dy = cy - py;
+    let len = Math.hypot(dx, dy) || 1;
+    dx /= len; dy /= len;
+    const dist = Math.max(window.innerWidth, window.innerHeight) * 0.55;
+    const m = 10;
+    let nx = cx + dx * dist - w / 2;
+    let ny = cy + dy * dist - h / 2;
+    nx = Math.max(m, Math.min(nx, window.innerWidth  - w - m));
+    ny = Math.max(m, Math.min(ny, window.innerHeight - h - m));
+    if (overlapsJa(nx, ny, w, h)) return randomPos(w, h);
+    return { x: nx, y: ny };
+  }
+
+  // Make Nee fixed (capturing its current spot) the first time it moves
+  function ensureFixed() {
+    if (nee.style.position !== 'fixed') {
+      const r = nee.getBoundingClientRect();
+      nee.style.margin = '0';
+      nee.style.position = 'fixed';
+      nee.style.left = r.left + 'px';
+      nee.style.top  = r.top + 'px';
+    }
+  }
+
+  // Nee never advances — it only relocates. pointerdown = instant on touch+mouse.
+  function moveNee(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    ensureFixed();
+    const w = nee.offsetWidth, h = nee.offsetHeight;
+    const mode = questions[current].nee;
+
+    let pos;
+    if (mode === 'glide') {
+      nee.style.transition = 'left .55s ease, top .55s ease';
+      pos = awayFrom(e.clientX ?? 0, e.clientY ?? 0, w, h);
+    } else {
+      nee.style.transition = 'none';        // teleport + erratic: instant jump
+      pos = randomPos(w, h);
+    }
+
+    nee.style.left = pos.x + 'px';
+    nee.style.top  = pos.y + 'px';
+
+    if (mode === 'erratic') {
+      nee.animate(
+        [{ transform: 'scale(1)' }, { transform: 'scale(1.35) rotate(-6deg)' }, { transform: 'scale(1)' }],
+        { duration: 260, easing: 'ease-out' }
+      );
+    }
+  }
+
+  // Use pointerdown so it reacts instantly on mouse AND touch.
+  nee.addEventListener('pointerdown', moveNee);
+  // Belt-and-braces: block any other activation path.
+  nee.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); });
+  nee.addEventListener('keydown', (e) => e.preventDefault());
+
+  // Ja: the only way forward.
+  ja.addEventListener('click', () => {
+    current++;
+    if (current < questions.length) {
+      renderQuestion();
+    } else {
+      finish();
+    }
+  });
+
+  function finish() {
+    // hide the whole prompt card, show celebration card
+    resetNee();
+    nee.style.display = 'none';
+    document.querySelector('.quiz-inner').style.display = 'none';
+
+    celebrate.textContent = "Woopdiefloop! 🎉 Samen op fietsdate binnenkort, trek je pak maar vast aan!";
+    celebrate.style.display = 'block';
+
+    fireConfetti();
+
+    // transition into the map
+    setTimeout(() => {
+      initMap();
+      quiz.classList.add('leaving');
+      const mapSection = document.getElementById('map-section');
+      mapSection.classList.add('show');
+      mapSection.setAttribute('aria-hidden', 'false');
+      setTimeout(() => {
+        quiz.style.display = 'none';
+        if (window._map) window._map.invalidateSize();
+        startBike();
+      }, 850);
+    }, 2200);
+  }
+
+  function fireConfetti() {
+    if (typeof confetti !== 'function') return;
+    const end = Date.now() + 1500;
+    const colors = ['#4B164C', '#E15B7E', '#9B5BA0', '#F3D9E2'];
+    (function frame() {
+      confetti({ particleCount: 5, angle: 60,  spread: 60, origin: { x: 0 },   colors });
+      confetti({ particleCount: 5, angle: 120, spread: 60, origin: { x: 1 },   colors });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    })();
+    confetti({ particleCount: 140, spread: 90, startVelocity: 45, origin: { y: 0.6 }, colors });
+  }
+
+  // Start at first question
+  renderQuestion();
+
+  // Keep Nee inside the viewport on resize/rotate if it's already loose
+  window.addEventListener('resize', () => {
+    if (nee.style.position === 'fixed') {
+      const w = nee.offsetWidth, h = nee.offsetHeight;
+      const m = 10;
+      let x = Math.min(parseFloat(nee.style.left) || 0, window.innerWidth  - w - m);
+      let y = Math.min(parseFloat(nee.style.top)  || 0, window.innerHeight - h - m);
+      nee.style.left = Math.max(m, x) + 'px';
+      nee.style.top  = Math.max(m, y) + 'px';
+    }
+  });
+
+  /* ==========================================================================
+     PART 2 LOGIC — Leaflet map driven entirely by `stops`
+     ========================================================================== */
+  function initMap() {
+    if (window._map) return;
+
+    const map = L.map('map', { zoomControl: true, scrollWheelZoom: true });
+    window._map = map;
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const latlngs = stops.map(s => s.coords);
+
+    // route line
+    L.polyline(latlngs, {
+      color: '#4B164C',
+      weight: 5,
+      opacity: 0.85,
+      dashArray: '1, 10',
+      lineCap: 'round'
+    }).addTo(map);
+
+    // markers
+    stops.forEach((s, i) => {
+      const num = i + 1;
+      const isResto = !!s.isRestaurant;
+
+      const html = isResto
+        ? `<div class="pin resto"><span>🍽️</span></div>`
+        : `<div class="pin"><span>${num}</span></div>`;
+
+      const icon = L.divIcon({
+        className: '',
+        html,
+        iconSize:   isResto ? [46, 46] : [38, 38],
+        iconAnchor: isResto ? [23, 46] : [19, 38],
+        popupAnchor: [0, isResto ? -44 : -36]
+      });
+
+      const marker = L.marker(s.coords, { icon }).addTo(map);
+      marker.bindPopup(buildPopup(s, num), { maxWidth: 300, autoPanPadding: [24, 60] });
+    });
+
+    map.fitBounds(L.latLngBounds(latlngs), { padding: [50, 50] });
+  }
+
+  function buildPopup(s, num) {
+    const label = s.isRestaurant ? `${s.emoji} ${s.name}` : `${num}. ${s.emoji} ${s.name}`;
+    let html = `<div class="pop-title">${escapeHtml(label)}</div>`;
+    html += `<div class="pop-note">${escapeHtml(s.note)}</div>`;
+
+    if (s.photo && s.photo.trim() !== '') {
+      html += `<img class="pop-img" src="${encodeURI(s.photo)}" alt="${escapeHtml(s.name)}" loading="lazy" />`;
+    }
+
+    if (s.isRestaurant) {
+      html += `<div class="pop-times">`
+            + `🍽️ <b>Reservering:</b> ${escapeHtml(s.reservationTime)}<br>`
+            + `🚲 <b>Ik haal je op:</b> ${escapeHtml(s.pickupTime)}`
+            + `</div>`;
+    }
+    return html;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  /* Nice-to-have: a small bike icon that animates once along the route. */
+  function startBike() {
+    const map = window._map;
+    if (!map) return;
+
+    const pts = stops.map(s => map.latLngToContainerPoint(L.latLng(s.coords)));
+    // cumulative distances for constant-speed interpolation
+    const segs = [];
+    let total = 0;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const d = pts[i].distanceTo(pts[i + 1]);
+      segs.push(d);
+      total += d;
+    }
+    if (total === 0) return;
+
+    const bikeIcon = L.divIcon({ className: '', html: '<div class="bike-marker">🚲</div>', iconSize: [30, 30], iconAnchor: [15, 15] });
+    const bike = L.marker(stops[0].coords, { icon: bikeIcon, interactive: false, zIndexOffset: 1000 }).addTo(map);
+
+    const DURATION = 4200;
+    let startT = null;
+
+    function step(ts) {
+      if (startT === null) startT = ts;
+      const t = Math.min((ts - startT) / DURATION, 1);
+      const target = t * total;
+
+      // find current segment
+      let acc = 0, seg = 0;
+      while (seg < segs.length - 1 && acc + segs[seg] < target) { acc += segs[seg]; seg++; }
+      const segT = segs[seg] ? (target - acc) / segs[seg] : 0;
+
+      const a = stops[seg].coords, b = stops[seg + 1] ? stops[seg + 1].coords : a;
+      const lat = a[0] + (b[0] - a[0]) * segT;
+      const lng = a[1] + (b[1] - a[1]) * segT;
+      bike.setLatLng([lat, lng]);
+
+      if (t < 1) requestAnimationFrame(step);
+      else setTimeout(() => map.removeLayer(bike), 800); // animate once, then remove
+    }
+    requestAnimationFrame(step);
+  }
+  </script>
+</body>
+</html>
