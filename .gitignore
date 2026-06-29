@@ -1,3 +1,6 @@
 .DS_Store
 images/_originals/
 photos_sijf/_originals/
+
+# private reference screenshots — not for the public site
+match/

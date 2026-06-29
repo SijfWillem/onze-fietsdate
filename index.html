@@ -193,6 +193,122 @@
     .ph-btn.btn-yes  { color: #2ec27e; font-size: 1.9rem; }
 
     /* ============================================================
+       PART 0.5 — MATCH + CHAT (Hinge-style)
+       ============================================================ */
+    #match {
+      position: fixed; inset: 0; z-index: 30;
+      display: flex; align-items: center; justify-content: center;
+      padding: 28px;
+      background: linear-gradient(165deg, var(--plum) 0%, var(--plum-2) 48%, var(--rose) 100%);
+      opacity: 0; pointer-events: none;
+      transition: opacity .6s ease;
+    }
+    #match.show { opacity: 1; pointer-events: auto; }
+    #match.hide { opacity: 0; pointer-events: none; }
+    .match-inner {
+      text-align: center; color: #fff;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      animation: popIn .6s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    .match-avatars { position: relative; height: 128px; width: 210px; margin-bottom: 4px; }
+    .match-av {
+      position: absolute; top: 4px;
+      width: 120px; height: 120px; border-radius: 50%;
+      object-fit: cover; border: 4px solid #fff;
+      box-shadow: 0 12px 30px rgba(0,0,0,.32);
+      image-orientation: from-image;
+    }
+    .match-av.a1 { left: 0;  transform: rotate(-6deg); object-position: center 30%; }
+    .match-av.a2 { right: 0; transform: rotate(6deg);  object-position: center 30%; }
+    .match-title { font-size: clamp(1.7rem, 7vw, 2.1rem); font-weight: 800; letter-spacing: -.02em; }
+    .match-sub   { font-size: 1.05rem; font-weight: 500; opacity: .92; }
+    .match-btn {
+      margin-top: 14px; border: none; border-radius: 999px;
+      background: #fff; color: var(--plum);
+      font-family: inherit; font-weight: 800; font-size: 1.1rem;
+      padding: 16px 40px; cursor: pointer;
+      box-shadow: 0 14px 30px rgba(0,0,0,.28);
+      animation: jaPulse 1.7s ease-in-out infinite;
+      transition: transform .15s ease;
+    }
+    .match-btn:active { transform: scale(.94); }
+
+    #chat {
+      position: fixed; inset: 0; z-index: 35;
+      display: flex; flex-direction: column;
+      background: #fff;
+      opacity: 0; pointer-events: none;
+      transition: opacity .5s ease;
+    }
+    #chat.show { opacity: 1; pointer-events: auto; }
+    #chat.hide { opacity: 0; pointer-events: none; }
+
+    .chat-header { padding-top: calc(8px + env(safe-area-inset-top)); border-bottom: 1px solid var(--line); background: #fff; }
+    .chat-bar { display: flex; align-items: center; justify-content: space-between; padding: 6px 16px 10px; }
+    .chat-back { font-size: 1.7rem; color: var(--ink); width: 28px; }
+    .chat-title { font-size: 1.4rem; font-weight: 800; color: var(--ink); }
+    .chat-menu { font-size: 1.5rem; color: var(--ink); width: 28px; text-align: right; }
+    .chat-tabs { display: flex; }
+    .chat-tab { flex: 1; text-align: center; padding: 10px 0 12px; font-weight: 700; font-size: 1rem; color: var(--muted); }
+    .chat-tab.active { color: var(--plum); box-shadow: inset 0 -2.5px 0 var(--plum); }
+    .chat-tab-sep { width: 1px; background: var(--line); margin: 9px 0; transform: skewX(-12deg); }
+
+    .chat-scroll { flex: 1; overflow-y: auto; padding: 16px 16px 8px; display: flex; flex-direction: column; gap: 10px; background: #fff; }
+    .chat-date { text-align: center; color: var(--muted); font-size: .85rem; font-weight: 600; margin: 6px 0 2px; }
+    .chat-date span { font-weight: 500; opacity: .8; }
+
+    .chat-prompt-wrap { display: flex; flex-direction: column; }
+    .chat-prompt { background: #ededed; border-radius: 22px; padding: 20px 22px 30px; }
+    .chat-prompt-label { font-size: .95rem; color: #4a4a4a; margin-bottom: 10px; }
+    .chat-prompt-text { font-family: Georgia, 'Times New Roman', serif; font-size: clamp(1.5rem, 6.6vw, 1.85rem); font-weight: 700; line-height: 1.12; color: #111; }
+    .chat-reply {
+      align-self: flex-start; margin-top: -16px; margin-left: 6px;
+      background: #ededed; color: #1d1d1f;
+      padding: 12px 18px; border-radius: 20px 20px 20px 6px;
+      font-size: 1.05rem; box-shadow: 0 4px 12px rgba(0,0,0,.07); z-index: 2;
+    }
+
+    .chat-row { display: flex; align-items: flex-end; gap: 8px; }
+    .chat-row.right { justify-content: flex-end; }
+    .chat-row.left  { justify-content: flex-start; }
+    .chat-bubble { max-width: 76%; padding: 13px 18px; border-radius: 22px; font-size: 1.05rem; line-height: 1.3; }
+    .chat-bubble.grey { background: #ededed; color: #1d1d1f; border-bottom-left-radius: 8px; }
+    .chat-bubble.sent { background: var(--plum); color: #fff; border-bottom-right-radius: 8px; }
+    .chat-bubble.indent { margin-left: 42px; }
+    .chat-av { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; image-orientation: from-image; flex: none; }
+    .chat-av-spacer { width: 34px; flex: none; }
+    .chat-sent-label { font-size: .78rem; color: var(--muted); margin: 4px 4px 0 0; }
+    .chat-bubble u { text-decoration: underline; }
+    .chat-hint { text-align: center; color: var(--muted); font-size: .9rem; margin: 10px 0; }
+
+    .chat-continue {
+      align-self: center; margin: 8px 0 6px; border: none; border-radius: 999px;
+      background: var(--plum); color: #fff; font-family: inherit; font-weight: 800; font-size: 1.05rem;
+      padding: 14px 30px; cursor: pointer; box-shadow: 0 12px 26px rgba(75,22,76,.32);
+      animation: jaPulse 1.7s ease-in-out infinite; transition: transform .15s ease;
+    }
+    .chat-continue:active { transform: scale(.95); }
+
+    .chat-input { display: flex; align-items: center; gap: 10px; padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: #fff; }
+    .chat-input-pill { flex: 1; border: 1.5px solid var(--line); border-radius: 999px; padding: 14px 20px; color: var(--muted); font-size: 1rem; }
+    .chat-input-mic { width: 44px; height: 44px; border-radius: 50%; background: #f1eef2; display: flex; align-items: center; justify-content: center; color: var(--plum); flex: none; }
+
+    /* typing-style one-by-one reveal */
+    .chat-rev { opacity: 0; transform: translateY(10px); transition: opacity .4s ease, transform .4s ease; }
+    .chat-rev.in { opacity: 1; transform: none; }
+
+    /* little "typing…" indicator shown before each incoming message */
+    .chat-typing {
+      align-self: flex-start; display: none; align-items: center; gap: 4px;
+      background: #ededed; border-radius: 20px; padding: 14px 16px; margin-left: 42px;
+    }
+    .chat-typing.show { display: inline-flex; }
+    .chat-typing i { width: 7px; height: 7px; border-radius: 50%; background: #b3b3b3; animation: typeBounce 1.2s infinite ease-in-out; }
+    .chat-typing i:nth-child(2) { animation-delay: .2s; }
+    .chat-typing i:nth-child(3) { animation-delay: .4s; }
+    @keyframes typeBounce { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-5px); opacity: 1; } }
+
+    /* ============================================================
        PART 1 — QUESTIONNAIRE (Hinge-style profile card)
        ============================================================ */
     #quiz {
@@ -615,6 +731,45 @@
     </div>
   </section>
 
+  <!-- ===================== PART 0.5 — MATCH ===================== -->
+  <section id="match" aria-hidden="true">
+    <div class="match-inner">
+      <div class="match-avatars">
+        <img class="match-av a1" src="photos_juliah/e5929fcb-79d0-4b8a-86fb-e5c1851abcf3.jpg" alt="Juliah" />
+        <img class="match-av a2" src="photos_sijf/IMG_4138.jpeg" alt="Sijf" />
+      </div>
+      <h2 class="match-title">Yay, it's a match! 🎉</h2>
+      <p class="match-sub">Jij en Sijf vinden elkaar leuk.</p>
+      <button class="match-btn" id="open-chat" type="button">Open the chat</button>
+    </div>
+  </section>
+
+  <!-- ===================== PART 0.5 — CHAT ===================== -->
+  <section id="chat" aria-hidden="true">
+    <div class="chat-header">
+      <div class="chat-bar">
+        <span class="chat-back">‹</span>
+        <span class="chat-title">Sijf</span>
+        <span class="chat-menu">⋯</span>
+      </div>
+      <div class="chat-tabs">
+        <span class="chat-tab active">Chat</span>
+        <span class="chat-tab-sep"></span>
+        <span class="chat-tab">Profile</span>
+      </div>
+    </div>
+
+    <!-- messages are built from the `conversation` array in JS and revealed one by one -->
+    <div class="chat-scroll" id="chat-scroll"></div>
+
+    <div class="chat-input">
+      <div class="chat-input-pill">Send a message</div>
+      <div class="chat-input-mic" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="8" x2="6" y2="14"/><line x1="11" y1="4" x2="11" y2="18"/><line x1="16" y1="8" x2="16" y2="14"/></svg>
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== PART 1 ===================== -->
   <section id="quiz">
     <div id="hearts"></div>
@@ -657,10 +812,10 @@
   </section>
 
 
-  <!-- canvas-confetti (CDN, HTTPS) -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-  <!-- Leaflet JS (CDN, HTTPS, no API key) -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  <!-- canvas-confetti (CDN, HTTPS) — defer so it never blocks first paint / app boot -->
+  <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- Leaflet JS (CDN, HTTPS, no API key) — defer; only needed once the map is reached -->
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
           crossorigin=""></script>
 
@@ -682,13 +837,13 @@
     age:  "25",
     bio:  "Looking for someone who is less chaotic than me, i fucking love moustaches.",
     photos: [
+      "photos_juliah/e5929fcb-79d0-4b8a-86fb-e5c1851abcf3.jpg",
       "photos_juliah/IMG_2269.jpeg",
       "photos_juliah/IMG_3180.jpeg",
       "photos_juliah/IMG_3875.jpeg",
       "photos_juliah/IMG_4319.jpeg",
       "photos_juliah/IMG_4327.jpeg",
       "photos_juliah/IMG_4455.jpeg",
-      "photos_juliah/e5929fcb-79d0-4b8a-86fb-e5c1851abcf3.jpg",
     ],
   };
 
@@ -1180,15 +1335,235 @@
         loadPerson(personIndex + 1);          // next person flies in (Freek → Sijf)
         phHint.textContent = HINT_DEFAULT;
       } else {
-        profileEl.classList.add('hide');       // liked everyone → reveal the quiz beneath
+        profileEl.classList.add('hide');       // liked Sijf → it's a match!
         profileEl.setAttribute('aria-hidden', 'true');
         setTimeout(() => { profileEl.style.display = 'none'; }, 600);
+        showMatch();
       }
     }, 560);
   }
 
   document.getElementById('ph-yes').addEventListener('click', likeMe);
   document.getElementById('ph-nope').addEventListener('click', nudgeNo);
+
+  /* ==========================================================================
+     PART 0.5 LOGIC — match screen → chat (messages arrive one by one)
+     ========================================================================== */
+  const matchEl = document.getElementById('match');
+  const chatEl  = document.getElementById('chat');
+  const chatScroll = document.getElementById('chat-scroll');
+  const PARTNER_AVATAR = 'photos_sijf/IMG_4138.jpeg';   // Sijf — the grey/left side in Juliah's chat
+
+  // The whole conversation, in order. 'her' = Juliah (grey, left), 'me' = Sijf (plum, right).
+  const conversation = [
+    { t: 'date', d: 'Wed, 14 May', time: '20:48' },
+    { t: 'prompt', label: 'I want someone who', text: 'is less chaotic than me', reply: 'I cant promise that' },
+    { t: 'date', d: 'Fri, 20 Jun', time: '16:34' },
+    { t: 'sys', text: 'You matched with Sijf' },
+    { t: 'date', d: 'Fri, 20 Jun', time: '16:37' },
+    { from: 'her', text: 'Hmmmmm' },
+    { from: 'me',  text: 'Dealbreker?' },
+    { from: 'her', text: 'Neehoor misschien wel leuk' },
+    { from: 'her', text: 'Wat een leuke naam heb je' },
+    { from: 'her', text: 'Sijf' },
+    { from: 'me',  text: 'De snor kan ik wel leveren' },
+    { from: 'me',  text: 'Thanks!!!' },
+    { from: 'me',  text: 'Jij ook trouwens!! Zie je niet vaak met de h' },
+    { from: 'her', text: 'Yes! Perfect' },
+    { from: 'her', text: 'Dankje!! :)' },
+    { from: 'me',  text: 'Binnenkort gezellig een biertje doen ergens??' },
+    { from: 'me',  text: 'Kunnen we praten over verzekeringen' },
+    { from: 'her', text: 'Gezellig! Neem je polisblad mee' },
+    { from: 'me',  text: 'Ga ik doen!' },
+    { from: 'me',  text: 'Nog een voorkeursdatum?' },
+    { from: 'her', text: 'Euhmmm' },
+    { from: 'her', text: 'Morgen op de ring rond een uurtje of 2?' },
+    { from: 'me',  text: 'Ben helaas niet op de ring te vinden morgen' },
+    { from: 'me',  text: 'Had geen kaart en dacht t wordt gekkenhuis hahaha' },
+    { from: 'her', text: 'Hahah nee ik ook niet hoor' },
+    { from: 'her', text: 'Kan niet goed gaan' },
+    { from: 'me',  text: 'Haha precies' },
+    { from: 'me',  text: 'Wel nog leuke andere plannen?' },
+    { from: 'her', text: 'Jaa ga wel even met een vriendin op pad maar nog niks concreets' },
+    { from: 'her', text: 'Jij?' },
+    { t: 'date', d: 'Sat, 21 Jun 2025', time: '10:33' },
+    { from: 'me',  text: 'Naar de ring ook? Of ergens anders' },
+    { from: 'me',  text: 'Ik heb vanavond optreden van drukwerk hahah' },
+    { from: 'me',  text: 'En morgen hebben we feest hier thuis thuis' },
+    { from: 'me',  text: 'Dus allemaal lekker' },
+    { from: 'her', text: 'Nee ergens anders' },
+    { from: 'me',  text: 'Ook beter denk ik hahah' },
+    { from: 'her', text: 'Wat leuk!! Waar?' },
+    { from: 'her', text: 'Waar is thuis thuis voor jou?' },
+    { from: 'her', text: 'Jaa hahah denk het ook' },
+    { from: 'me',  text: 'Grootschermer is thuis thuis' },
+    { from: 'me',  text: 'Middle of nowhere hahah' },
+    { from: 'me',  text: 'Maar in de buurt van alkmaar' },
+    { from: 'me',  text: 'Bij jou?' },
+    { from: 'her', text: 'Ohja! Hoogeveen, in Drenthe' },
+    { from: 'her', text: 'Nog nooooit van gehoord, Grootschermer' },
+    { from: 'me',  text: 'Oeh ver weg' },
+    { from: 'me',  text: 'Naar ams verhuisd voor studie? Werk?' },
+    { from: 'me',  text: 'Hahaha nee snap k hoor!! Is een gat' },
+    { from: 'her', text: 'Destijds voor studie en nu gewoon omdat ik het miste haha, werk groot en deels vanuit huis :) en jij?' },
+    { from: 'me',  text: 'Lekker' },
+    { from: 'me',  text: 'Waar in ams woon je?' },
+    { from: 'me',  text: 'Wat lekker vanuit huis werken' },
+    { from: 'me',  text: "Wel beetje saai zonder collega's" },
+    { from: 'me',  text: 'Ik idd toen voor studie en blijven hangen' },
+    { from: 'me',  text: 'Classic' },
+    { from: 'her', text: 'Jaa klopt, één dag in de week kantoor hoor!' },
+    { from: 'her', text: 'In west' },
+    { from: 'her', text: 'Jij?' },
+    { from: 'me',  text: 'Lekkerr' },
+    { from: 'me',  text: 'Kantoor in amsterdam ook? Of?' },
+    { from: 'me',  text: 'Woon nu in zuid' },
+    { from: 'me',  text: 'Maar ben zoekende naar nieuw huisje nog' },
+    { from: 'her', text: 'Neee in hoogeveen dus op en neer!' },
+    { from: 'her', text: 'Leuk!' },
+    { from: 'me',  text: 'Zal je wel filmpjes sturen!!' },
+    { from: 'her', text: 'Kan niet via hinge ;)' },
+    { from: 'me',  text: 'Meenje' },
+    { from: 'me',  text: 'Oja zie t idd' },
+    { from: 'me',  text: 'Oke dan moet t maar via insta of iets ben ik bang! :)' },
+    { from: 'her', text: 'Haha' },
+    { from: 'her', text: "Dat is goed'" },
+    { from: 'her', text: 'Mijn insta is;', linkHandle: 'Juliah.co', sent: true },
+    { from: 'me',  text: 'Toop' },
+  ];
+
+  // Build every element ONCE but keep them detached; they're appended one by one
+  // during the reveal so the scroll grows naturally and follows the newest message.
+  const chatEls = [];   // { el, incoming, isMe, isDate }
+  function buildChat() {
+    conversation.forEach((m, i) => {
+      let el, incoming = false, isMe = false, isDate = false;
+      if (m.t === 'date') {
+        isDate = true;
+        el = document.createElement('div');
+        el.className = 'chat-date chat-rev';
+        el.appendChild(document.createTextNode(m.d + ' '));
+        const sp = document.createElement('span'); sp.textContent = m.time; el.appendChild(sp);
+      } else if (m.t === 'prompt') {
+        el = document.createElement('div');
+        el.className = 'chat-prompt-wrap chat-rev';
+        const card = document.createElement('div'); card.className = 'chat-prompt';
+        const lab = document.createElement('div'); lab.className = 'chat-prompt-label'; lab.textContent = m.label;
+        const txt = document.createElement('div'); txt.className = 'chat-prompt-text'; txt.textContent = m.text;
+        card.appendChild(lab); card.appendChild(txt);
+        const rep = document.createElement('div'); rep.className = 'chat-reply'; rep.textContent = m.reply;
+        el.appendChild(card); el.appendChild(rep);
+      } else if (m.t === 'sys') {
+        el = document.createElement('div');
+        el.className = 'chat-row left chat-rev';
+        const b = document.createElement('div'); b.className = 'chat-bubble grey indent'; b.textContent = m.text;
+        el.appendChild(b);
+      } else {
+        const juliah = m.from === 'her';   // Juliah owns this phone → purple, right, the sender
+        const sijf = !juliah;
+        incoming = sijf;                    // Sijf's messages are the incoming ones (show "typing…")
+        isMe = juliah;
+        const next = conversation[i + 1];
+        const hasAvatar = sijf && !(next && next.from === 'me');   // Sijf avatar only on the last of his run
+        el = document.createElement('div');
+        el.className = 'chat-row ' + (juliah ? 'right' : 'left') + ' chat-rev' + (sijf ? ' incoming' : '');
+        if (hasAvatar) {
+          const av = document.createElement('img'); av.className = 'chat-av'; av.src = PARTNER_AVATAR; av.alt = 'Sijf';
+          el.appendChild(av);
+        }
+        const b = document.createElement('div');
+        b.className = 'chat-bubble ' + (juliah ? 'sent' : 'grey') + (sijf && !hasAvatar ? ' indent' : '');
+        if (m.linkHandle) {
+          b.appendChild(document.createTextNode(m.text + ' '));
+          const u = document.createElement('u'); u.textContent = m.linkHandle; b.appendChild(u);
+        } else {
+          b.textContent = m.text;
+        }
+        if (juliah && m.sent) {
+          const wrap = document.createElement('div');
+          wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; wrap.style.alignItems = 'flex-end';
+          wrap.appendChild(b);
+          const s = document.createElement('div'); s.className = 'chat-sent-label'; s.textContent = 'Sent';
+          wrap.appendChild(s);
+          el.appendChild(wrap);
+        } else {
+          el.appendChild(b);
+        }
+      }
+      chatEls.push({ el, incoming, isMe, isDate });
+    });
+
+    const hint = document.createElement('div'); hint.className = 'chat-hint chat-rev';
+    hint.textContent = 'Double tap to like a message';
+    chatEls.push({ el: hint });
+
+    const cont = document.createElement('button'); cont.className = 'chat-continue chat-rev';
+    cont.type = 'button'; cont.textContent = 'Door naar verassing....';
+    cont.addEventListener('click', continueFromChat);
+    chatEls.push({ el: cont });
+  }
+
+  function showMatch() {
+    matchEl.classList.add('show');
+    matchEl.setAttribute('aria-hidden', 'false');
+    fireConfetti();
+  }
+
+  function openChat() {
+    matchEl.classList.add('hide');
+    matchEl.setAttribute('aria-hidden', 'true');
+    setTimeout(() => { matchEl.style.display = 'none'; }, 500);
+    chatEl.classList.add('show');
+    chatEl.setAttribute('aria-hidden', 'false');
+    setTimeout(revealChat, 450);
+  }
+
+  const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+  const stickBottom = () => { chatScroll.scrollTop = chatScroll.scrollHeight; };
+
+  let chatRevealed = false;
+  async function revealChat() {
+    if (chatRevealed) return;
+    chatRevealed = true;
+
+    let prevSender = null;   // 'her' | 'me'
+    for (const item of chatEls) {
+      if (item.incoming) {
+        // her message: show a "typing…" bubble first (longer when she just started replying)
+        const changed = prevSender !== 'her';
+        const typing = document.createElement('div');
+        typing.className = 'chat-typing show';
+        typing.innerHTML = '<i></i><i></i><i></i>';
+        chatScroll.appendChild(typing);
+        stickBottom();
+        await sleep(changed ? 1500 : 950);
+        typing.remove();
+      } else if (item.isMe) {
+        await sleep(prevSender !== 'me' ? 1000 : 650);
+      } else if (item.isDate) {
+        await sleep(700);
+      } else {
+        await sleep(950);   // prompt, system, hint, continue button
+      }
+
+      chatScroll.appendChild(item.el);   // append only now → scroll grows with content
+      void item.el.offsetHeight;          // force reflow so the .in transition plays
+      item.el.classList.add('in');
+      stickBottom();
+      if (item.incoming) prevSender = 'her';
+      else if (item.isMe) prevSender = 'me';
+      await sleep(220);
+    }
+  }
+
+  function continueFromChat() {
+    chatEl.classList.add('hide');
+    chatEl.setAttribute('aria-hidden', 'true');
+    setTimeout(() => { chatEl.style.display = 'none'; }, 600);  // reveal the quiz beneath
+  }
+
+  document.getElementById('open-chat').addEventListener('click', openChat);
+  buildChat();
 
   // run the intro: Hinge logo on opening, then fade into 'Your Profile' (Juliah).
   // Pre-load the first swipe card (Freek) behind the scenes.
