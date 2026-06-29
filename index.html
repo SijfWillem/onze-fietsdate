@@ -47,7 +47,7 @@
     #splash {
       position: fixed;
       inset: 0;
-      z-index: 40;
+      z-index: 50;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -71,6 +71,44 @@
     }
     @keyframes logoIn { from { opacity: 0; transform: scale(.86); } to { opacity: 1; transform: scale(1); } }
     @keyframes fadeIn { to { opacity: 1; } }
+
+    /* ---- Your Profile (Juliah) — the opener ---- */
+    #yourprofile {
+      position: fixed;
+      inset: 0;
+      z-index: 45;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 18px;
+      background: radial-gradient(120% 90% at 50% 0%, var(--bg) 0%, var(--bg-2) 100%);
+      transition: opacity .6s ease;
+    }
+    #yourprofile.hide { opacity: 0; pointer-events: none; }
+    .yp-head {
+      font-size: 1.55rem;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      color: var(--plum);
+    }
+    .yp-card { cursor: pointer; }
+    .yp-start {
+      border: none;
+      border-radius: 999px;
+      background: var(--plum);
+      color: #fff;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 1.15rem;
+      padding: 16px 44px;
+      cursor: pointer;
+      box-shadow: 0 12px 26px rgba(75,22,76,.32);
+      animation: jaPulse 1.7s ease-in-out infinite;
+      transition: transform .15s ease;
+    }
+    .yp-start:active { transform: scale(.94); }
 
     #profile {
       position: fixed;
@@ -540,7 +578,23 @@
     <div class="splash-tag">Designed to be deleted.</div>
   </section>
 
-  <!-- ===================== PART 0 — PROFILE ===================== -->
+  <!-- ===================== PART 0 — YOUR PROFILE ===================== -->
+  <section id="yourprofile" aria-hidden="true">
+    <div class="yp-head">Your Profile</div>
+    <div class="ph-deck">
+      <div class="ph-card yp-card" id="yp-card">
+        <div class="ph-segs" id="yp-segs"></div>
+        <img class="ph-photo" id="yp-photo" alt="Juliah" />
+        <div class="ph-info">
+          <div class="ph-name" id="yp-name"></div>
+          <div class="ph-bio" id="yp-bio"></div>
+        </div>
+      </div>
+    </div>
+    <button class="yp-start" id="start-swiping" type="button">Start swiping</button>
+  </section>
+
+  <!-- ===================== PART 0 — SWIPE DECK (Freek, then Sijf) ===================== -->
   <section id="profile" aria-hidden="true">
     <div class="ph-hint" id="ph-hint">Swipe naar rechts om te liken 💚</div>
     <div class="ph-deck">
@@ -622,19 +676,48 @@
     { text: "Ga je met me mee op fietsdate door onze herinneringen?",     nee: "erratic"  },
   ];
 
-  // Jouw 'Hinge-profiel' — getoond bij het openen. Foto's staan in photos_sijf/.
-  // Swipe naar rechts (of tik op ♥) = like. Tik op de foto om te wisselen.
-  const profilePhotos = [
-    "photos_sijf/IMG_4138.jpeg",
-    "photos_sijf/IMG_2905.jpeg",
-    "photos_sijf/IMG_2385.jpeg",
-    "photos_sijf/IMG_8881.jpeg",
-  ];
-  const profile = {
-    name: "Sijf",
-    age:  "24",                                            // optioneel, bijv. "26" → "Sijf, 26"
-    bio:  "De snor kan ik leveren, minder chaos niet ben ik bang.",
+  // Juliah's eigen profiel — getoond bij het openen ('Your Profile'). Tik op de foto om te wisselen.
+  const me = {
+    name: "Juliah",
+    age:  "25",
+    bio:  "Looking for someone who is less chaotic than me, i fucking love moustaches.",
+    photos: [
+      "photos_juliah/IMG_2269.jpeg",
+      "photos_juliah/IMG_3180.jpeg",
+      "photos_juliah/IMG_3875.jpeg",
+      "photos_juliah/IMG_4319.jpeg",
+      "photos_juliah/IMG_4327.jpeg",
+      "photos_juliah/IMG_4455.jpeg",
+      "photos_juliah/e5929fcb-79d0-4b8a-86fb-e5c1851abcf3.jpg",
+    ],
   };
+
+  // De swipe-deck — eerst Freek, dan Sijf. Swipe naar rechts (of tik op ♥) = like.
+  // Tik links/rechts op de foto om door iemands foto's te klikken.
+  const profiles = [
+    {
+      name: "Freek",
+      age:  "3",
+      bio:  "Woof woof, woof woof.",
+      photos: [
+        "photos_freek/IMG_1540.jpeg",
+        "photos_freek/IMG_3698.jpeg",
+        "photos_freek/IMG_3865.jpeg",
+        "photos_freek/013dfb18-9c3b-4ec6-a46e-de7ac150baf1.jpg",
+      ],
+    },
+    {
+      name: "Sijf",
+      age:  "24",
+      bio:  "De snor kan ik leveren, minder chaos niet ben ik bang.",
+      photos: [
+        "photos_sijf/IMG_4138.jpeg",
+        "photos_sijf/IMG_2905.jpeg",
+        "photos_sijf/IMG_2385.jpeg",
+        "photos_sijf/IMG_8881.jpeg",
+      ],
+    },
+  ];
 
   // Fotogalerij — getoond NA de vragen, VÓÓR de route. Volgorde = klikvolgorde.
   // Verander hier de foto's en bijschriften (bestanden staan in images/).
@@ -967,9 +1050,35 @@
   }
 
   /* ==========================================================================
-     PART 0 LOGIC — Hinge splash + swipeable profile (swipe right to like)
+     PART 0 LOGIC — 'Your Profile' opener → swipe deck (Freek, then Sijf)
      ========================================================================== */
-  const splashEl  = document.getElementById('splash');
+
+  // ---- Your Profile (Juliah) ----
+  const ypCard  = document.getElementById('yp-card');
+  const ypPhoto = document.getElementById('yp-photo');
+  const ypSegs  = document.getElementById('yp-segs');
+  const ypName  = document.getElementById('yp-name');
+  const ypBio   = document.getElementById('yp-bio');
+  let ypIndex = 0;
+
+  function buildYourProfile() {
+    me.photos.forEach(src => { const im = new Image(); im.src = src; });   // preload
+    me.photos.forEach(() => ypSegs.appendChild(document.createElement('div')));
+    ypName.textContent = me.name + (me.age ? `, ${me.age}` : '');
+    ypBio.textContent  = me.bio;
+    showYourPhoto(0);
+  }
+  function showYourPhoto(i) {
+    ypIndex = (i + me.photos.length) % me.photos.length;
+    ypPhoto.src = me.photos[ypIndex];
+    [...ypSegs.children].forEach((d, idx) => d.classList.toggle('on', idx === ypIndex));
+  }
+  ypCard.addEventListener('click', (e) => {
+    const r = ypCard.getBoundingClientRect();
+    showYourPhoto((e.clientX - r.left) < r.width * 0.35 ? ypIndex - 1 : ypIndex + 1);
+  });
+
+  // ---- Swipe deck ----
   const profileEl = document.getElementById('profile');
   const phCard    = document.getElementById('ph-card');
   const phPhoto   = document.getElementById('ph-photo');
@@ -981,18 +1090,30 @@
   const stampNope = document.getElementById('ph-stamp-nope');
   const HINT_DEFAULT = "Swipe naar rechts om te liken 💚";
 
+  let personIndex = 0;   // 0 = Freek, 1 = Sijf
   let phIndex = 0;
 
-  function buildProfile() {
-    profilePhotos.forEach(src => { const im = new Image(); im.src = src; });   // preload
-    profilePhotos.forEach(() => phSegs.appendChild(document.createElement('div')));
-    phName.textContent = profile.name + (profile.age ? `, ${profile.age}` : '');
-    phBio.textContent  = profile.bio;
+  function loadPerson(i) {
+    personIndex = i;
+    const p = profiles[i];
+    liked = false;
+    phSegs.innerHTML = '';
+    p.photos.forEach(src => { const im = new Image(); im.src = src; });   // preload
+    p.photos.forEach(() => phSegs.appendChild(document.createElement('div')));
+    phName.textContent = p.name + (p.age ? `, ${p.age}` : '');
+    phBio.textContent  = p.bio;
+    phPhoto.alt = p.name;
+    // snap the card back to center, fresh
+    phCard.style.transition = 'none';
+    phCard.style.transform = '';
+    phCard.style.opacity = '1';
+    resetCard();
     showProfilePhoto(0);
   }
   function showProfilePhoto(i) {
-    phIndex = (i + profilePhotos.length) % profilePhotos.length;
-    phPhoto.src = profilePhotos[phIndex];
+    const p = profiles[personIndex];
+    phIndex = (i + p.photos.length) % p.photos.length;
+    phPhoto.src = p.photos[phIndex];
     [...phSegs.children].forEach((d, idx) => d.classList.toggle('on', idx === phIndex));
   }
 
@@ -1055,26 +1176,47 @@
     phCard.style.transform = 'translate(135vw, -50px) rotate(26deg)';
     phCard.style.opacity = '0';
     setTimeout(() => {
-      profileEl.classList.add('hide');
-      profileEl.setAttribute('aria-hidden', 'true');
-      setTimeout(() => { profileEl.style.display = 'none'; }, 600);  // reveal the quiz beneath
-    }, 460);
+      if (personIndex < profiles.length - 1) {
+        loadPerson(personIndex + 1);          // next person flies in (Freek → Sijf)
+        phHint.textContent = HINT_DEFAULT;
+      } else {
+        profileEl.classList.add('hide');       // liked everyone → reveal the quiz beneath
+        profileEl.setAttribute('aria-hidden', 'true');
+        setTimeout(() => { profileEl.style.display = 'none'; }, 600);
+      }
+    }, 560);
   }
 
   document.getElementById('ph-yes').addEventListener('click', likeMe);
   document.getElementById('ph-nope').addEventListener('click', nudgeNo);
 
-  // run the intro: build profile, hold logo, then fade splash → profile
-  buildProfile();
-  function revealProfile() {
+  // run the intro: Hinge logo on opening, then fade into 'Your Profile' (Juliah).
+  // Pre-load the first swipe card (Freek) behind the scenes.
+  buildYourProfile();
+  loadPerson(0);
+
+  const splashEl = document.getElementById('splash');
+  let splashDone = false;
+  function dismissSplash() {
+    if (splashDone) return;
+    splashDone = true;
+    clearTimeout(splashTimer);
     splashEl.classList.add('hide');
-    profileEl.classList.add('show');
-    profileEl.setAttribute('aria-hidden', 'false');
+    document.getElementById('yourprofile').setAttribute('aria-hidden', 'false');
     setTimeout(() => { splashEl.style.display = 'none'; }, 700);
   }
-  let splashDone = false;
-  const splashTimer = setTimeout(() => { if (!splashDone) { splashDone = true; revealProfile(); } }, 2000);
-  splashEl.addEventListener('click', () => { if (!splashDone) { splashDone = true; clearTimeout(splashTimer); revealProfile(); } });
+  const splashTimer = setTimeout(dismissSplash, 2000);
+  splashEl.addEventListener('click', dismissSplash);
+
+  function startSwiping() {
+    const yp = document.getElementById('yourprofile');
+    yp.classList.add('hide');
+    yp.setAttribute('aria-hidden', 'true');
+    profileEl.classList.add('show');
+    profileEl.setAttribute('aria-hidden', 'false');
+    setTimeout(() => { yp.style.display = 'none'; }, 600);
+  }
+  document.getElementById('start-swiping').addEventListener('click', startSwiping);
 
   // Start at first question (quiz sits beneath the splash/profile until "like")
   renderQuestion();
